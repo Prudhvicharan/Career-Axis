@@ -1,8 +1,12 @@
 // src/components/Dashboard/Summary.jsx
 import React from "react";
 import { EMAIL_CATEGORIES } from "../Classification/Categories";
+import { calculateEmailStats } from "../../utils/helpers";
 
 const Summary = ({ emails, setFilter }) => {
+  // Calculate statistics from emails
+  const stats = calculateEmailStats(emails);
+
   // Count emails by category
   const categoryCounts = Object.values(EMAIL_CATEGORIES).reduce(
     (acc, category) => {
@@ -11,12 +15,14 @@ const Summary = ({ emails, setFilter }) => {
     },
     {}
   );
-
   emails.forEach((email) => {
-    categoryCounts[email.category] = (categoryCounts[email.category] || 0) + 1;
+    if (email.category) {
+      categoryCounts[email.category] =
+        (categoryCounts[email.category] || 0) + 1;
+    }
   });
 
-  // Colors for categories
+  // Define category colors from your palette
   const categoryColors = {
     "Application Submitted": "#4F46E5",
     "Interview Request": "#059669",
@@ -49,94 +55,58 @@ const Summary = ({ emails, setFilter }) => {
     },
   ];
 
-  // Format date range for title
-  const formatDateRange = () => {
-    const today = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const formatDate = (date) => {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-    };
-
-    return `${formatDate(thirtyDaysAgo)} - ${formatDate(today)}`;
-  };
+  // Format date range for header
+  const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const formatRange = (date) =>
+    date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const dateRange = `${formatRange(thirtyDaysAgo)} - ${formatRange(today)}`;
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <div
-        style={{
-          padding: "1.5rem",
-          borderBottom: "1px solid #E5E7EB",
-          flexShrink: 0,
-        }}
-      >
-        <h2
-          style={{ fontSize: "1.125rem", fontWeight: "500", color: "#111827" }}
-        >
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Header Section */}
+      <header className="p-6 border-b border-[#A4AC86]/60 bg-white">
+        <h2 className="text-xl font-medium text-[#111827]">
           Applications Summary
         </h2>
-        <p style={{ fontSize: "0.875rem", color: "#6B7280" }}>
-          {formatDateRange()}
-        </p>
-
-        <div style={{ marginTop: "0.5rem" }}>
-          <div
-            style={{
-              fontSize: "1.875rem",
-              fontWeight: "700",
-              color: "#111827",
-            }}
-          >
-            {emails.length}
-          </div>
-          <div style={{ fontSize: "0.875rem", color: "#6B7280" }}>
-            Total job-related emails
-          </div>
+        <p className="text-sm text-[#6B7280]">{dateRange}</p>
+        <div className="mt-3">
+          <div className="text-4xl font-bold text-[#111827]">{stats.total}</div>
+          <div className="text-sm text-[#6B7280]">Total job-related emails</div>
         </div>
-      </div>
+      </header>
 
-      <div style={{ padding: "1.5rem", flexShrink: 0 }}>
+      {/* Category Badges */}
+      <div className="p-6 flex-shrink-0">
         {Object.keys(categoryCounts).some((key) => categoryCounts[key] > 0) ? (
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "0.5rem",
-            }}
-          >
+          <div className="flex flex-wrap gap-2">
             {Object.entries(categoryCounts)
               .filter(([_, count]) => count > 0)
               .map(([category, count]) => (
                 <div
                   key={category}
+                  onClick={() => setFilter(category)}
+                  className="px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-transform duration-100 ease-in-out"
                   style={{
-                    padding: "0.5rem 0.75rem",
-                    backgroundColor: `${categoryColors[category]}20`,
+                    backgroundColor: categoryColors[category] + "20",
                     color: categoryColors[category],
-                    borderRadius: "9999px",
-                    fontSize: "0.75rem",
-                    fontWeight: "500",
                   }}
+                  onMouseOver={(e) =>
+                    (e.currentTarget.style.transform = "scale(1.05)")
+                  }
+                  onMouseOut={(e) =>
+                    (e.currentTarget.style.transform = "scale(1)")
+                  }
                 >
                   {category}: {count}
                 </div>
               ))}
           </div>
         ) : (
-          <div
-            style={{ textAlign: "center", padding: "2rem 0", color: "#6B7280" }}
-          >
+          <div className="text-center py-8 text-[#6B7280]">
             <svg
-              style={{
-                width: "3rem",
-                height: "3rem",
-                margin: "0 auto",
-                color: "#9CA3AF",
-              }}
+              className="w-12 h-12 mx-auto text-[#9CA3AF]"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -149,149 +119,102 @@ const Summary = ({ emails, setFilter }) => {
                 d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
               />
             </svg>
-            <p style={{ marginTop: "0.5rem" }}>
-              No job application emails found
-            </p>
+            <p className="mt-2">No job application emails found</p>
           </div>
         )}
       </div>
 
-      {/* Filter by category */}
-      <div
-        style={{
-          padding: "1rem 1.5rem",
-          flexShrink: 0,
-          borderTop: "1px solid #E5E7EB",
-        }}
-      >
-        <h3
-          style={{
-            fontSize: "0.875rem",
-            fontWeight: "500",
-            color: "#111827",
-            marginBottom: "0.75rem",
-          }}
-        >
+      {/* Filter Section */}
+      <div className="p-6 flex-shrink-0 border-t border-b border-[#E5E7EB] bg-white">
+        <h3 className="text-sm font-medium text-[#111827] mb-3">
           Filter by Status
         </h3>
-
-        <div>
-          <button
-            onClick={() => setFilter("all")}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              width: "100%",
-              padding: "0.5rem 1rem",
-              textAlign: "left",
-              borderRadius: "0.375rem",
-              marginBottom: "0.25rem",
-              border: "none",
-              backgroundColor: "#F3F4F6",
-              cursor: "pointer",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <div
-                style={{
-                  width: "0.75rem",
-                  height: "0.75rem",
-                  borderRadius: "9999px",
-                  backgroundColor: "#4F46E5",
-                  marginRight: "0.75rem",
-                }}
-              ></div>
-              <span style={{ fontWeight: "500" }}>All Emails</span>
-            </div>
-            <span
-              style={{
-                backgroundColor: "#EEF2FF",
-                color: "#4F46E5",
-                fontSize: "0.75rem",
-                fontWeight: "500",
-                padding: "0.125rem 0.625rem",
-                borderRadius: "9999px",
-              }}
-            >
-              {emails.length}
-            </span>
-          </button>
-        </div>
+        <button
+          onClick={() => setFilter("all")}
+          className="flex items-center justify-between w-full px-4 py-2 bg-gray-100 rounded-md mb-1 focus:outline-none"
+        >
+          <div className="flex items-center">
+            <div className="w-3 h-3 rounded-full bg-[#4F46E5] mr-3"></div>
+            <span className="font-medium">All Emails</span>
+          </div>
+          <span className="bg-[#EEF2FF] text-[#4F46E5] text-xs font-medium px-2 py-0.5 rounded-full">
+            {emails.length}
+          </span>
+        </button>
       </div>
 
-      <div style={{ padding: "0 1.5rem", flexGrow: 1, overflowY: "auto" }}>
-        {categoryGroups.map((group) => (
-          <div key={group.title} style={{ marginBottom: "1rem" }}>
+      {/* Main Scrollable Area */}
+      <div className="p-6 flex-1 overflow-y-auto bg-white">
+        {categoryGroups.map((group, groupIndex) => (
+          <section key={group.title} className="mb-4">
             <h4
-              style={{
-                fontSize: "0.75rem",
-                fontWeight: "500",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                color: "#6B7280",
-                marginBottom: "0.5rem",
-              }}
+              className={`text-xs font-medium uppercase tracking-wide text-[#6B7280] mb-2 ${
+                groupIndex > 0 ? "pt-2" : ""
+              }`}
             >
               {group.title}
             </h4>
-            <div>
+            <div className="space-y-1">
               {group.categories.map((category) => (
                 <button
                   key={category}
                   onClick={() => setFilter(category)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    width: "100%",
-                    padding: "0.5rem 1rem",
-                    textAlign: "left",
-                    borderRadius: "0.375rem",
-                    marginBottom: "0.25rem",
-                    border: "none",
-                    backgroundColor: "transparent",
-                    cursor: "pointer",
-                    transition: "background-color 0.2s",
-                    fontSize: "0.875rem",
-                  }}
-                  onMouseOver={(e) =>
-                    (e.target.style.backgroundColor = "#F3F4F6")
-                  }
-                  onMouseOut={(e) =>
-                    (e.target.style.backgroundColor = "transparent")
-                  }
+                  className="flex items-center justify-between w-full px-4 py-2 text-sm rounded-md transition-colors duration-200 hover:bg-gray-100 focus:outline-none"
                 >
-                  <div style={{ display: "flex", alignItems: "center" }}>
+                  <div className="flex items-center">
                     <div
+                      className="w-3 h-3 rounded-full mr-3"
                       style={{
-                        width: "0.75rem",
-                        height: "0.75rem",
-                        borderRadius: "9999px",
                         backgroundColor: categoryColors[category] || "#6B7280",
-                        marginRight: "0.75rem",
                       }}
                     ></div>
                     <span>{category}</span>
                   </div>
-                  <span
-                    style={{
-                      backgroundColor: "#F3F4F6",
-                      color:
-                        categoryCounts[category] > 0 ? "#111827" : "#9CA3AF",
-                      fontSize: "0.75rem",
-                      fontWeight: "500",
-                      padding: "0.125rem 0.625rem",
-                      borderRadius: "9999px",
-                    }}
-                  >
+                  <span className="bg-gray-100 text-[#111827] text-xs font-medium px-2 py-0.5 rounded-full">
                     {categoryCounts[category] || 0}
                   </span>
                 </button>
               ))}
             </div>
-          </div>
+          </section>
         ))}
+
+        {/* Stats Section */}
+        {/* <div className="mt-6 mb-8 p-4 bg-[#F9FAFB] rounded-md">
+          <h4 className="text-sm font-medium text-[#111827] mb-2">
+            Application Stats
+          </h4>
+          <div className="flex justify-between mb-1">
+            <span className="text-xs text-[#6B7280]">Applications</span>
+            <span className="text-xs font-medium text-[#111827]">
+              {stats.applications}
+            </span>
+          </div>
+          <div className="flex justify-between mb-1">
+            <span className="text-xs text-[#6B7280]">Interviews</span>
+            <span className="text-xs font-medium text-[#111827]">
+              {stats.interviews}
+            </span>
+          </div>
+          <div className="flex justify-between mb-1">
+            <span className="text-xs text-[#6B7280]">Offers</span>
+            <span className="text-xs font-medium text-[#111827]">
+              {stats.offers}
+            </span>
+          </div>
+          <div className="flex justify-between mb-1">
+            <span className="text-xs text-[#6B7280]">Rejections</span>
+            <span className="text-xs font-medium text-[#111827]">
+              {stats.rejections}
+            </span>
+          </div>
+          <div className="flex justify-between mt-3 border-t border-gray-300 pt-2">
+            <span className="text-xs text-[#6B7280]">Response Rate</span>
+            <span className="text-xs font-medium text-[#059669]">
+              {stats.responseRate}
+            </span>
+          </div>
+        </div> */}
       </div>
     </div>
   );

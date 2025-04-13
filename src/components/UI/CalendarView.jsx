@@ -3,61 +3,44 @@ import React, { useState } from "react";
 const CalendarView = ({ events }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // Function to get days in month
-  const getDaysInMonth = (year, month) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
+  // Helper functions to compute calendar values.
+  const getDaysInMonth = (year, month) =>
+    new Date(year, month + 1, 0).getDate();
+  const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
+  const formatDateDisplay = (date) =>
+    new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(
+      date
+    );
 
-  // Function to get day of week of first day in month
-  const getFirstDayOfMonth = (year, month) => {
-    return new Date(year, month, 1).getDay();
-  };
-
-  // Format date for display
-  const formatDate = (date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "long",
-      year: "numeric",
-    }).format(date);
-  };
-
-  // Go to previous month
   const prevMonth = () => {
     setCurrentMonth(
       new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
     );
   };
 
-  // Go to next month
   const nextMonth = () => {
     setCurrentMonth(
       new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
     );
   };
 
-  // Calendar data setup
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
   const daysInMonth = getDaysInMonth(year, month);
   const firstDayOfMonth = getFirstDayOfMonth(year, month);
 
-  // Generate dates for calendar
+  // Create an array for the calendar grid (null for empty leading cells)
   const calendarDays = [];
-
-  // Add empty cells for days before first day of month
   for (let i = 0; i < firstDayOfMonth; i++) {
     calendarDays.push(null);
   }
-
-  // Add days of month
   for (let day = 1; day <= daysInMonth; day++) {
     calendarDays.push(new Date(year, month, day));
   }
 
-  // Find events for each day
+  // Get events for a given day.
   const getEventsForDay = (date) => {
     if (!date) return [];
-
     return events.filter((event) => {
       const eventDate = new Date(event.date);
       return (
@@ -68,45 +51,43 @@ const CalendarView = ({ events }) => {
     });
   };
 
-  // Get today
   const today = new Date();
-  const isToday = (date) => {
-    if (!date) return false;
-    return (
-      date.getFullYear() === today.getFullYear() &&
-      date.getMonth() === today.getMonth() &&
-      date.getDate() === today.getDate()
-    );
-  };
+  const isToday = (date) =>
+    date &&
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate();
 
-  // Get event color based on type
-  const getEventColor = (eventType) => {
-    switch (eventType) {
+  // Use custom palette for event colors.
+  const getEventColor = (type) => {
+    switch (type) {
       case "interview":
-        return "bg-emerald-100 text-emerald-800 border-emerald-200";
+        return "bg-[#D1FAE5] text-[#059669] border-[#A7F3D0]";
       case "deadline":
-        return "bg-red-100 text-red-800 border-red-200";
+        return "bg-[#FEF2F2] text-[#DC2626] border-[#FEE2E2]";
       case "followup":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-[#E0F2FE] text-[#2563EB] border-[#BAE6FD]";
       case "assessment":
-        return "bg-amber-100 text-amber-800 border-amber-200";
+        return "bg-[#FFFBEB] text-[#D97706] border-[#FEF3C7]";
+      case "applied":
+        return "bg-[#EEF2FF] text-[#4F46E5] border-[#BFDBFE]";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      {/* Calendar header */}
-      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">
-          {formatDate(currentMonth)}
+    <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Calendar Header */}
+      <div className="px-4 py-3 border-b border-[#A4AC86]/60 flex items-center justify-between bg-white">
+        <h2 className="text-lg font-semibold text-[#111827]">
+          {formatDateDisplay(currentMonth)}
         </h2>
         <div className="flex space-x-2">
           <button
             type="button"
             onClick={prevMonth}
-            className="p-1.5 rounded-md text-gray-400 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="p-1.5 rounded-md text-[#656D4A] hover:text-[#414833] hover:bg-[#F3F4F6] focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path
@@ -126,7 +107,7 @@ const CalendarView = ({ events }) => {
           <button
             type="button"
             onClick={nextMonth}
-            className="p-1.5 rounded-md text-gray-400 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="p-1.5 rounded-md text-[#656D4A] hover:text-[#414833] hover:bg-[#F3F4F6] focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path
@@ -139,7 +120,7 @@ const CalendarView = ({ events }) => {
         </div>
       </div>
 
-      {/* Day names */}
+      {/* Day Names */}
       <div className="grid grid-cols-7 gap-px border-b border-gray-200">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((dayName) => (
           <div
@@ -151,11 +132,10 @@ const CalendarView = ({ events }) => {
         ))}
       </div>
 
-      {/* Calendar grid */}
+      {/* Calendar Grid */}
       <div className="grid grid-cols-7 gap-px bg-gray-200">
         {calendarDays.map((date, index) => {
           const dayEvents = getEventsForDay(date);
-
           return (
             <div
               key={index}
@@ -172,14 +152,13 @@ const CalendarView = ({ events }) => {
                   >
                     {date.getDate()}
                   </div>
-
                   <div className="mt-2 space-y-1 max-h-[80px] overflow-y-auto">
                     {dayEvents.map((event, eventIndex) => (
                       <div
                         key={eventIndex}
                         className={`px-2 py-1 text-xs rounded truncate border ${getEventColor(
                           event.type
-                        )}`}
+                        )} border-solid`}
                         title={event.title}
                       >
                         {event.title}

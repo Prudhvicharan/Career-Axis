@@ -1,68 +1,76 @@
-/* Basic styles without Tailwind directives */
+/* index.css */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global Body Styles */
 body {
-  margin: 0;
+  margin: 0; /* Often handled by Tailwind reset, but good to keep explicitly */
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #F9FAFB;
-  color: #374151;
+  /* Define base background and text colors if desired */
+  /* Example using your palette: */
+  /* background-color: #C2C5AA; */ /* Lightest green */
+  /* color: #414833; */ /* Dark Green/Brown */
+
+  /* Or keep the original ones if preferred for global default */
+   background-color: #F9FAFB; /* Default light gray */
+   color: #374151; /* Default dark gray */
 }
 
+/* Global Code Styles */
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
 
-/* Add some basic utility classes */
-.text-indigo-600 {
-  color: #4F46E5;
+/* --- Global Animations --- */
+
+/* Fade In Animation */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-.bg-indigo-600 {
-  background-color: #4F46E5;
+/* Subtle Pulse Animation */
+@keyframes pulseSlow {
+  0%, 100% { opacity: 0.6; transform: scale(1); } /* Added subtle scale */
+  50% { opacity: 1; transform: scale(1.02); }
 }
 
-.text-white {
-  color: #FFFFFF;
+/* Subtle Slow Spin Animation */
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-.rounded-lg {
-  border-radius: 0.5rem;
-}
+/* --- Animation Utility Classes --- */
+/* Apply these classes directly to elements */
 
-.shadow-lg {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
+@layer utilities {
+  .animate-fadeIn {
+    animation: fadeIn 0.7s ease-out forwards;
+  }
 
-.p-8 {
-  padding: 2rem;
-}
+  .animate-pulseSlow {
+    /* Adjust duration for subtlety */
+    animation: pulseSlow 9s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
 
-.my-4 {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-}
+  .animate-spinSlow {
+    /* Very slow rotation */
+    animation: spinSlow 75s linear infinite; /* Made even slower */
+  }
 
-.flex {
-  display: flex;
-}
-
-.flex-col {
-  flex-direction: column;
-}
-
-.items-center {
-  align-items: center;
-}
-
-.justify-center {
-  justify-content: center;
-}
-
-.min-h-screen {
-  min-height: 100vh;
 }

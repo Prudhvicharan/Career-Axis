@@ -1,5 +1,5 @@
 // src/components/Dashboard/Dashboard.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { fetchEmails } from "../../services/gmailApi";
 import {
   classifyEmail,
@@ -14,311 +14,328 @@ import Summary from "./Summary";
 import EmailList from "./EmailList";
 import EmailDetail from "./EmailDetail";
 
-const Dashboard = ({ accessToken, onLogout }) => {
+// --- Icons --- (Using Heroicons Outline style for consistency)
+const MenuIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    className="w-6 h-6"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+    />
+  </svg>
+);
+
+const RefreshIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    className="w-4 h-4"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+    />
+  </svg>
+);
+
+const MailIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    className="w-12 h-12 text-[#A4AC86]"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"
+    />
+  </svg>
+);
+
+const Dashboard = ({ accessToken, onLogout, onAuthError }) => {
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [filter, setFilter] = useState("all");
   const [refreshing, setRefreshing] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // Default open on larger screens
+  const [page, setPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  const emailListRef = useRef(null);
 
   useEffect(() => {
     const loadEmails = async () => {
       try {
-        // Try to load from localStorage first
+        setLoading(true);
+        setLoadError(null);
         const storedEmails = getProcessedEmails();
-
         if (storedEmails.length > 0) {
           setEmails(storedEmails);
-          setLoading(false);
+          console.log("Loaded emails from localStorage:", storedEmails.length);
         }
+        try {
+          const fetchedEmails = await fetchEmails(accessToken);
+          console.log("Fetched emails from API:", fetchedEmails.length);
+          if (fetchedEmails && fetchedEmails.length > 0) {
+            const processedEmails = fetchedEmails.map((email) => ({
+              ...email,
+              category: classifyEmail(email),
+              company: extractCompanyName(email),
+              summary: summarizeEmail(email.body || email.snippet),
+            }));
+            saveProcessedEmails(processedEmails);
+            setEmails(processedEmails);
+          }
+        } catch (apiError) {
+          console.error("Error fetching from API:", apiError);
+          if (
+            (apiError.message && apiError.message.includes("authentication")) ||
+            apiError.response?.status === 401
+          ) {
+            onAuthError(apiError);
+          } else {
+            setLoadError(
+              "Couldn't fetch new emails. Using previously stored data."
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Error in loadEmails:", error);
+        setLoadError("An error occurred while loading your emails.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadEmails();
+  }, [accessToken, onAuthError]);
 
-        // Fetch fresh data from Gmail API
-        const fetchedEmails = await fetchEmails(accessToken);
-
-        // Process and classify each email
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setLoadError(null);
+    try {
+      const fetchedEmails = await fetchEmails(accessToken);
+      if (fetchedEmails && fetchedEmails.length > 0) {
         const processedEmails = fetchedEmails.map((email) => ({
           ...email,
           category: classifyEmail(email),
           company: extractCompanyName(email),
-          summary: summarizeEmail(email.body),
+          summary: summarizeEmail(email.body || email.snippet),
         }));
-
-        // Save to localStorage and update state
         saveProcessedEmails(processedEmails);
         setEmails(processedEmails);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error loading emails:", error);
-        setLoading(false);
       }
-    };
-
-    loadEmails();
-  }, [accessToken]);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      const fetchedEmails = await fetchEmails(accessToken);
-      const processedEmails = fetchedEmails.map((email) => ({
-        ...email,
-        category: classifyEmail(email),
-        company: extractCompanyName(email),
-        summary: summarizeEmail(email.body),
-      }));
-      saveProcessedEmails(processedEmails);
-      setEmails(processedEmails);
     } catch (error) {
       console.error("Error refreshing emails:", error);
+      if (
+        (error.message && error.message.includes("authentication")) ||
+        error.response?.status === 401
+      ) {
+        onAuthError(error);
+      } else {
+        setLoadError("Couldn't refresh emails. Please try again later.");
+      }
     } finally {
       setRefreshing(false);
     }
   };
 
-  // Get emails from last 30 days
+  // Filtering and Sorting
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const recentEmails = emails.filter((email) => {
-    const emailDate = new Date(email.date);
-    return emailDate >= thirtyDaysAgo;
-  });
-
-  // Filter emails based on selected category
+  const recentEmails = emails.filter(
+    (email) => new Date(email.date) >= thirtyDaysAgo
+  );
   const filteredEmails =
     filter === "all"
       ? recentEmails
       : recentEmails.filter((email) => email.category === filter);
+  const sortedEmails = [...filteredEmails].sort(
+    (a, b) => new Date(b.date) - new Date(a.date)
+  );
+
+  // Pagination Logic
+  const totalPages = Math.ceil(sortedEmails.length / itemsPerPage);
+  const startIndex = (page - 1) * itemsPerPage;
+  const paginatedEmails = sortedEmails.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
+      if (emailListRef.current) {
+        emailListRef.current.scrollTop = 0;
+      }
+    }
+  };
+
+  useEffect(() => {
+    setSelectedEmail(null);
+  }, [filter]);
+
   return (
-    <div className="app-container">
-      {/* Header */}
-      <header className="app-header">
-        <div style={{ display: "flex", alignItems: "center" }}>
+    <div className="flex flex-col h-screen overflow-hidden bg-[#F8F7F4]">
+      {/* Dashboard Header */}
+      <header className="flex items-center justify-between p-4 border-b border-[#A4AC86]/60 bg-white shadow-sm z-20 flex-shrink-0">
+        <div className="flex items-center">
           <button
             onClick={toggleSidebar}
-            style={{
-              marginRight: "1rem",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-            }}
+            className="mr-4 text-[#656D4A] hover:text-[#414833] p-1 rounded focus:outline-none focus:ring-2 focus:ring-[#A4AC86]"
+            aria-label="Toggle sidebar"
           >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M4 6H20M4 12H20M4 18H20"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <MenuIcon />
           </button>
-          <h1
-            style={{
-              color: "#4F46E5",
-              fontSize: "1.25rem",
-              fontWeight: "600",
-              margin: 0,
-            }}
-          >
-            Job Application Tracker
-          </h1>
+          {/* Updated branding: "Career Axis" */}
+          <h1 className="text-xl font-semibold text-[#7F4F24]">Career Axis</h1>
         </div>
-
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="btn-primary"
-          style={{ display: "flex", alignItems: "center" }}
-        >
-          {refreshing ? (
-            <>
-              <div
-                className="spinner"
-                style={{ width: "1rem", height: "1rem", marginRight: "0.5rem" }}
-              ></div>
-              Refreshing...
-            </>
-          ) : (
-            <>
-              <svg
-                style={{ marginRight: "0.5rem" }}
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M4 4V9H4.58152M19.9381 11C19.446 7.05369 16.0796 4 12 4C8.64262 4 5.76829 6.06817 4.58152 9M4.58152 9H9M20 20V15H19.4185M19.4185 15C18.2317 17.9318 15.3574 20 12 20C7.92038 20 4.55399 16.9463 4.06189 13M19.4185 15H15"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              Refresh
-            </>
-          )}
-        </button>
-        <button
-          onClick={onLogout}
-          className="text-gray-500 hover:text-gray-700"
-          style={{ marginLeft: "1rem" }}
-        >
-          Sign Out
-        </button>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition duration-150 ease-in-out ${
+              refreshing
+                ? "bg-[#A4AC86]/50 text-[#333D29]/70 cursor-not-allowed"
+                : "bg-[#7F4F24] text-white hover:bg-[#582F0E]"
+            }`}
+          >
+            {refreshing ? (
+              <>
+                <div className="w-4 h-4 mr-2 border-2 border-white/40 border-t-white rounded-full animate-spin"></div>
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <RefreshIcon />
+                <span className="ml-2">Refresh</span>
+              </>
+            )}
+          </button>
+          <button
+            onClick={onLogout}
+            className="text-sm text-[#656D4A] hover:text-[#414833] focus:outline-none"
+          >
+            Sign Out
+          </button>
+        </div>
       </header>
 
-      {loading ? (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flex: 1,
-          }}
-        >
-          <div style={{ textAlign: "center" }}>
-            <div
-              className="spinner"
-              style={{ margin: "0 auto", width: "3rem", height: "3rem" }}
-            ></div>
-            <p
-              style={{
-                marginTop: "1rem",
-                fontSize: "1.125rem",
-                color: "#374151",
-              }}
-            >
-              Loading your job application emails...
-            </p>
-            <p style={{ fontSize: "0.875rem", color: "#6B7280" }}>
-              This might take a moment
-            </p>
-          </div>
+      {/* Error Message */}
+      {loadError && (
+        <div className="p-3 mx-4 my-2 rounded-md text-sm bg-[#C2C5AA]/30 text-[#582F0E] border border-[#A4AC86]/50">
+          {loadError}
         </div>
-      ) : (
-        <div className="main-content">
-          {/* Sidebar */}
-          <div
-            className="sidebar"
-            style={{
-              transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
-              position: window.innerWidth < 768 ? "absolute" : "relative",
-              zIndex: 10,
-              height: "calc(100vh - 4rem)",
-              transition: "transform 0.3s ease-in-out",
-              overflowY: "auto",
-            }}
-          >
-            <Summary emails={recentEmails} setFilter={setFilter} />
-          </div>
+      )}
 
-          {/* Main content */}
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-            }}
-          >
-            <div style={{ display: "flex", flex: 1 }}>
-              {/* Email list */}
+      {/* Main Content Area */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <div
+          className={`w-[280px] bg-white border-r border-[#A4AC86]/60 shadow-md transform transition-transform duration-300 ease-in-out flex-shrink-0 absolute inset-y-0 left-0 z-10 md:relative md:translate-x-0 overflow-y-auto ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+          style={{ height: "calc(100vh - 65px)" }}
+        >
+          <Summary
+            emails={recentEmails}
+            setFilter={setFilter}
+            currentFilter={filter}
+          />
+        </div>
+
+        {/* Email List & Detail View */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {loading ? (
+            <div className="flex items-center justify-center flex-1 p-8">
+              <div className="text-center">
+                <div className="w-12 h-12 mx-auto border-4 border-[#A4AC86]/40 border-t-[#656D4A] rounded-full animate-spin"></div>
+                <p className="mt-4 text-lg font-medium text-[#414833]">
+                  Loading your job application emails...
+                </p>
+                <p className="text-sm text-[#656D4A]">
+                  This might take a moment
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-1 overflow-hidden">
+              {/* Email List */}
               <div
-                style={{
-                  width: "100%",
-                  borderRight: "1px solid #E5E7EB",
-                  background: "white",
-                  overflowY: "auto",
-                }}
+                ref={emailListRef}
+                id="email-list-container"
+                className={`w-full lg:w-1/2 xl:w-2/5 border-r border-[#A4AC86]/60 bg-white overflow-y-auto flex flex-col h-full flex-shrink-0 ${
+                  selectedEmail ? "hidden lg:flex" : "flex"
+                }`}
               >
                 <EmailList
-                  emails={filteredEmails}
+                  emails={paginatedEmails}
                   selectedEmail={selectedEmail}
                   setSelectedEmail={setSelectedEmail}
+                  setSidebarOpen={setSidebarOpen}
                 />
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="p-4 flex justify-center items-center border-t border-[#A4AC86]/60 bg-white mt-auto flex-shrink-0">
+                    <button
+                      onClick={() => handlePageChange(page - 1)}
+                      disabled={page === 1}
+                      className="px-3 py-1 text-sm border border-[#A4AC86]/60 rounded-l-md disabled:bg-[#C2C5AA]/30 disabled:text-[#656D4A]/50 disabled:cursor-not-allowed hover:bg-[#B6AD90]/20 enabled:text-[#414833]"
+                    >
+                      Previous
+                    </button>
+                    <div className="px-3 py-1 text-sm border-t border-b border-[#A4AC86]/60 text-[#414833]">
+                      Page {page} of {totalPages}
+                    </div>
+                    <button
+                      onClick={() => handlePageChange(page + 1)}
+                      disabled={page === totalPages}
+                      className="px-3 py-1 text-sm border border-[#A4AC86]/60 rounded-r-md disabled:bg-[#C2C5AA]/30 disabled:text-[#656D4A]/50 disabled:cursor-not-allowed hover:bg-[#B6AD90]/20 enabled:text-[#414833]"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
               </div>
-
-              {/* Email detail - hidden on small screens */}
+              {/* Email Detail */}
               <div
-                style={{
-                  display: window.innerWidth < 1024 ? "none" : "block",
-                  width: "50%",
-                  overflowY: "auto",
-                }}
+                className={`flex-1 overflow-y-auto bg-[#F8F7F4] h-full ${
+                  selectedEmail ? "block" : "hidden lg:block"
+                }`}
               >
                 {selectedEmail ? (
                   <EmailDetail email={selectedEmail} />
                 ) : (
-                  <div
-                    style={{
-                      display: "flex",
-                      height: "100%",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#6B7280",
-                    }}
-                  >
-                    <div style={{ textAlign: "center" }}>
-                      <svg
-                        style={{
-                          margin: "0 auto",
-                          width: "3rem",
-                          height: "3rem",
-                          color: "#9CA3AF",
-                        }}
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                        />
-                      </svg>
-                      <p style={{ marginTop: "0.5rem" }}>
-                        Select an email to view details
-                      </p>
+                  <div className="flex h-full items-center justify-center text-[#656D4A]">
+                    <div className="text-center">
+                      <MailIcon />
+                      <p className="mt-2">Select an email to view details</p>
                     </div>
                   </div>
                 )}
               </div>
             </div>
-
-            {/* Mobile email detail (shown when an email is selected) */}
-            <div
-              style={{
-                display:
-                  window.innerWidth < 1024 && selectedEmail ? "block" : "none",
-                flex: 1,
-                overflowY: "auto",
-                background: "white",
-                borderTop: "1px solid #E5E7EB",
-              }}
-            >
-              {selectedEmail && <EmailDetail email={selectedEmail} />}
-            </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

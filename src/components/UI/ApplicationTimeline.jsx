@@ -1,13 +1,13 @@
 import React from "react";
 
 const ApplicationTimeline = ({ events }) => {
-  // Function to get icon based on event type
+  // Return an icon for each event type, using our brand palette.
   const getEventIcon = (type) => {
     switch (type) {
       case "applied":
         return (
           <svg
-            className="h-5 w-5 text-blue-500"
+            className="h-5 w-5 text-[#4F46E5]"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -24,7 +24,7 @@ const ApplicationTimeline = ({ events }) => {
       case "interview":
         return (
           <svg
-            className="h-5 w-5 text-emerald-500"
+            className="h-5 w-5 text-[#059669]"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -41,7 +41,7 @@ const ApplicationTimeline = ({ events }) => {
       case "offer":
         return (
           <svg
-            className="h-5 w-5 text-violet-500"
+            className="h-5 w-5 text-[#7C3AED]"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -58,7 +58,7 @@ const ApplicationTimeline = ({ events }) => {
       case "rejected":
         return (
           <svg
-            className="h-5 w-5 text-red-500"
+            className="h-5 w-5 text-[#DC2626]"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -75,7 +75,7 @@ const ApplicationTimeline = ({ events }) => {
       case "assessment":
         return (
           <svg
-            className="h-5 w-5 text-amber-500"
+            className="h-5 w-5 text-[#D97706]"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -92,7 +92,7 @@ const ApplicationTimeline = ({ events }) => {
       case "email":
         return (
           <svg
-            className="h-5 w-5 text-indigo-500"
+            className="h-5 w-5 text-[#2563EB]"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -109,7 +109,7 @@ const ApplicationTimeline = ({ events }) => {
       default:
         return (
           <svg
-            className="h-5 w-5 text-gray-500"
+            className="h-5 w-5 text-[#6B7280]"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -126,7 +126,7 @@ const ApplicationTimeline = ({ events }) => {
     }
   };
 
-  // Function to format date
+  // Function to format a given date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -139,35 +139,33 @@ const ApplicationTimeline = ({ events }) => {
   return (
     <div className="flow-root">
       <ul className="-mb-8">
-        {events.map((event, eventIdx) => (
+        {events.map((event, idx) => (
           <li key={event.id}>
             <div className="relative pb-8">
-              {eventIdx !== events.length - 1 ? (
+              {idx !== events.length - 1 && (
                 <span
-                  className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
+                  className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-[#E5E7EB]"
                   aria-hidden="true"
                 ></span>
-              ) : null}
+              )}
               <div className="relative flex items-start space-x-3">
                 <div className="relative">
-                  <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center ring-8 ring-white">
+                  <div className="h-10 w-10 rounded-full bg-[#F3F4F6] flex items-center justify-center ring-8 ring-white">
                     {getEventIcon(event.type)}
                   </div>
                 </div>
                 <div className="min-w-0 flex-1 py-1.5">
-                  <div className="text-sm text-gray-500">
-                    <span className="font-medium text-gray-900">
+                  <div className="text-sm text-[#656D4A]">
+                    <span className="font-medium text-[#111827]">
                       {event.title}
                     </span>
-                    {event.company && (
-                      <span className="text-gray-500"> - {event.company}</span>
-                    )}
-                    <span className="whitespace-nowrap text-gray-500 ml-2">
+                    {event.company && <span> - {event.company}</span>}
+                    <span className="whitespace-nowrap ml-2 text-[#656D4A]">
                       {formatDate(event.date)}
                     </span>
                   </div>
                   {event.description && (
-                    <div className="mt-2 text-sm text-gray-700">
+                    <div className="mt-2 text-sm text-[#333D29]">
                       <p>{event.description}</p>
                     </div>
                   )}
