@@ -1,4 +1,5 @@
 // src/components/Classification/Categories.js
+
 export const EMAIL_CATEGORIES = {
   APPLICATION_SUBMITTED: "Application Submitted",
   INTERVIEW_REQUEST: "Interview Request",
@@ -18,14 +19,12 @@ export const CATEGORY_PATTERNS = {
     "thank you for your application",
     "received your application",
     "successfully submitted",
-    "thanks for your interest",
     "application has been submitted",
     "application confirmation",
     "we have received your application",
     "thank you for submitting",
     "application is complete",
     "has been received",
-    "thank you for your interest",
     "confirming your application",
   ],
   [EMAIL_CATEGORIES.INTERVIEW_REQUEST]: [
@@ -51,18 +50,16 @@ export const CATEGORY_PATTERNS = {
     "not moving forward",
     "other candidates",
     "not selected",
-    "decided to pursue",
-    "do not match",
-    "not a match",
-    "no longer under consideration",
     "we regret to inform",
-    "moving forward with other candidates",
+    "no longer under consideration",
     "position has been filled",
     "cannot offer you",
     "best of luck",
     "thank you for your understanding",
     "we have decided",
     "not proceeding",
+    "regret to inform",
+    "we are unable to move forward",
   ],
   [EMAIL_CATEGORIES.ASSESSMENT]: [
     "assessment",
