@@ -70,7 +70,15 @@ npm test
 ```
 
 ## 📁 Project Structure
-career-axis/ ├── src/ # Source files │ ├── components/ # React components │ ├── services/ # API and service integrations │ ├── utils/ # Utility functions │ ├── App.jsx # Main application component │ └── index.js # Application entry point ├── public/ # Static assets (HTML, images, etc.) └── config files # Configuration files (e.g., .env, webpack, eslint)
+career-axis/
+├── src/
+│   ├── components/ # React components
+│   ├── services/   # API and service integrations
+│   ├── utils/      # Utility functions
+│   ├── App.jsx     # Main application component
+│   └── index.js    # Application entry point
+├── public/         # Static assets
+└── config files    # Configuration files
 
 
 ## 🎨 Customization
