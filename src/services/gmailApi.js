@@ -1,9 +1,8 @@
-// src/services/gmailApi.js
+// src/services/gmailApi.js - Updated version
 import axios from "axios";
+import { extractCleanEmailText } from "../utils/emailTextExtractor";
 
-// Use a more efficient approach to fetch emails
 export const fetchEmails = async (accessToken, maxResults = 50) => {
-  // For debugging
   console.log("Using access token:", accessToken ? "Token exists" : "No token");
 
   if (!accessToken) {
@@ -12,7 +11,6 @@ export const fetchEmails = async (accessToken, maxResults = 50) => {
   }
 
   try {
-    // Set up axios with proper authentication
     const api = axios.create({
       baseURL: "https://gmail.googleapis.com/gmail/v1",
       headers: {
@@ -21,7 +19,7 @@ export const fetchEmails = async (accessToken, maxResults = 50) => {
       },
     });
 
-    // First, get email IDs with a better search query and fewer results to avoid rate limits
+    // Get email IDs with better search query
     const listResponse = await api.get(`/users/me/messages`, {
       params: {
         maxResults,
@@ -39,8 +37,7 @@ export const fetchEmails = async (accessToken, maxResults = 50) => {
       return [];
     }
 
-    // Get batch details instead of one-by-one to avoid rate limiting
-    // Process in smaller batches to avoid 429 errors
+    // Process in smaller batches to avoid rate limiting
     const batchSize = 10;
     const batches = [];
 
@@ -70,7 +67,7 @@ export const fetchEmails = async (accessToken, maxResults = 50) => {
         })
       );
 
-      // Add a small delay between batches to avoid rate limiting
+      // Add delay between batches
       if (batches.length > 1) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
@@ -85,17 +82,13 @@ export const fetchEmails = async (accessToken, maxResults = 50) => {
       console.error("Error response data:", error.response.data);
       console.error("Error response status:", error.response.status);
 
-      // Handle token expiration
       if (error.response.status === 401) {
         throw new Error("Your session has expired. Please sign in again.");
-      }
-      // Handle rate limiting
-      else if (error.response.status === 429) {
+      } else if (error.response.status === 429) {
         throw new Error("Too many requests. Please try again later.");
       }
     }
 
-    // Fallback to test data if we can't access the API
     console.log("Falling back to test data due to API error");
     return getTestData();
   }
@@ -109,46 +102,11 @@ const processEmails = (emails) => {
     const from = headers.find((h) => h.name === "From")?.value || "";
     const date = headers.find((h) => h.name === "Date")?.value || "";
 
-    // Extract body with improved decoding
-    let body = "";
-    if (email.payload.parts) {
-      // Try to find text/plain part first
-      const textPart = email.payload.parts.find(
-        (part) => part.mimeType === "text/plain"
-      );
+    // Extract body with improved parsing
+    let body = extractEmailBody(email.payload);
 
-      if (textPart && textPart.body.data) {
-        try {
-          body = decodeBase64Url(textPart.body.data);
-        } catch (e) {
-          console.error("Error decoding email body:", e);
-        }
-      } else {
-        // Try to find HTML part if no plain text
-        const htmlPart = email.payload.parts.find(
-          (part) => part.mimeType === "text/html"
-        );
-
-        if (htmlPart && htmlPart.body.data) {
-          try {
-            // Convert HTML to plain text by removing tags
-            const html = decodeBase64Url(htmlPart.body.data);
-            body = html
-              .replace(/<[^>]*>?/gm, " ")
-              .replace(/\s+/g, " ")
-              .trim();
-          } catch (e) {
-            console.error("Error decoding email HTML body:", e);
-          }
-        }
-      }
-    } else if (email.payload.body && email.payload.body.data) {
-      try {
-        body = decodeBase64Url(email.payload.body.data);
-      } catch (e) {
-        console.error("Error decoding email body:", e);
-      }
-    }
+    // Clean the extracted body
+    const cleanBody = extractCleanEmailText({ body });
 
     return {
       id: email.id,
@@ -156,22 +114,90 @@ const processEmails = (emails) => {
       subject,
       from,
       date: new Date(date),
-      body,
+      body: cleanBody, // Use cleaned body
+      rawBody: body, // Keep original for debugging
       snippet: email.snippet,
       url: `https://mail.google.com/mail/u/0/#inbox/${email.id}`,
     };
   });
 };
 
+// Enhanced email body extraction
+const extractEmailBody = (payload) => {
+  let body = "";
+
+  try {
+    if (payload.parts && payload.parts.length > 0) {
+      // Handle multipart emails
+      body = extractFromParts(payload.parts);
+    } else if (payload.body && payload.body.data) {
+      // Handle simple emails
+      body = decodeBase64Url(payload.body.data);
+    }
+  } catch (error) {
+    console.error("Error extracting email body:", error);
+    return "";
+  }
+
+  return body;
+};
+
+// Recursively extract text from email parts
+const extractFromParts = (parts) => {
+  let bestContent = "";
+  let textContent = "";
+  let htmlContent = "";
+
+  for (const part of parts) {
+    if (part.parts) {
+      // Recursive for nested parts
+      const nestedContent = extractFromParts(part.parts);
+      if (nestedContent) {
+        bestContent = nestedContent;
+      }
+    } else if (part.body && part.body.data) {
+      try {
+        const decoded = decodeBase64Url(part.body.data);
+
+        if (part.mimeType === "text/plain") {
+          textContent = decoded;
+        } else if (part.mimeType === "text/html") {
+          htmlContent = decoded;
+        }
+      } catch (error) {
+        console.error("Error decoding part:", error);
+      }
+    }
+  }
+
+  // Prefer plain text over HTML
+  if (textContent) {
+    return textContent;
+  } else if (htmlContent) {
+    return htmlContent;
+  } else {
+    return bestContent;
+  }
+};
+
 // Helper function to safely decode base64url encoded strings
 function decodeBase64Url(base64url) {
-  // Convert base64url to base64
-  const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
-  // Decode base64
-  return atob(base64);
+  try {
+    // Convert base64url to base64
+    const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
+
+    // Add padding if needed
+    const paddedBase64 = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+
+    // Decode base64
+    return atob(paddedBase64);
+  } catch (error) {
+    console.error("Error decoding base64url:", error);
+    return "";
+  }
 }
 
-// Fallback test data in case the API fails
+// Updated test data with more realistic content
 function getTestData() {
   const now = new Date();
   const yesterday = new Date(now);
@@ -184,7 +210,7 @@ function getTestData() {
       subject: "Thank you for applying to Software Engineer position",
       from: "TechCorp Recruiting <recruiting@techcorp.com>",
       date: now,
-      body: "Thank you for submitting your application for the Software Engineer position at TechCorp. We have received your application and will review it shortly.",
+      body: "Thank you for submitting your application for the Software Engineer position at TechCorp. We have received your application and will review it shortly. Our team will be in touch within the next 5-7 business days to discuss next steps.",
       snippet:
         "Thank you for submitting your application for the Software Engineer position at TechCorp.",
       url: "https://mail.google.com/mail/u/0/#inbox/email1",
@@ -195,7 +221,7 @@ function getTestData() {
       subject: "Interview Request: Software Developer Position",
       from: "InnovateTech HR <hr@innovatetech.com>",
       date: yesterday,
-      body: "We have reviewed your application and would like to schedule an interview with you for the Software Developer position. Please let us know your availability for next week.",
+      body: "We have reviewed your application and would like to schedule an interview with you for the Software Developer position. The interview will be conducted via video call and should take approximately 1 hour. Please let us know your availability for next week, preferably Tuesday through Thursday between 10 AM and 4 PM.",
       snippet:
         "We have reviewed your application and would like to schedule an interview with you for the Software Developer position.",
       url: "https://mail.google.com/mail/u/0/#inbox/email2",
@@ -203,35 +229,13 @@ function getTestData() {
     {
       id: "email3",
       threadId: "thread3",
-      subject: "Coding Assessment for Full Stack Developer Role",
+      subject: "Unfortunately, we won't be moving forward",
       from: "WebSolutions <careers@websolutions.com>",
       date: yesterday,
-      body: "As part of our interview process, we would like you to complete a coding assessment. Please find the details attached and submit your solution within 3 days.",
+      body: "Thank you for your interest in the Full Stack Developer position at WebSolutions. After careful consideration of all candidates, we have decided to move forward with another candidate whose experience more closely matches our current needs. We appreciate the time you invested in the interview process and wish you the best of luck in your job search.",
       snippet:
-        "As part of our interview process, we would like you to complete a coding assessment.",
+        "Thank you for your interest in the Full Stack Developer position at WebSolutions.",
       url: "https://mail.google.com/mail/u/0/#inbox/email3",
-    },
-    {
-      id: "email4",
-      threadId: "thread4",
-      subject: "Thank you for your interest in DataTech",
-      from: "DataTech Careers <no-reply@datatech.com>",
-      date: now,
-      body: "Thank you for your interest in DataTech. We have received your application for the Data Engineer position and will review it shortly.",
-      snippet:
-        "Thank you for your interest in DataTech. We have received your application for the Data Engineer position.",
-      url: "https://mail.google.com/mail/u/0/#inbox/email4",
-    },
-    {
-      id: "email5",
-      threadId: "thread5",
-      subject: "Application Status: Frontend Developer",
-      from: "UI Experts <careers@uiexperts.com>",
-      date: yesterday,
-      body: "Unfortunately, we have decided to move forward with other candidates for the Frontend Developer position. We appreciate your interest in our company and wish you the best in your job search.",
-      snippet:
-        "Unfortunately, we have decided to move forward with other candidates for the Frontend Developer position.",
-      url: "https://mail.google.com/mail/u/0/#inbox/email5",
     },
   ];
 }

@@ -9,10 +9,10 @@ import {
   saveProcessedEmails,
   getProcessedEmails,
 } from "../../services/storageService";
-import { summarizeEmail } from "../../services/summarizationService";
 import Summary from "./Summary";
 import EmailList from "./EmailList";
 import EmailDetail from "./EmailDetail";
+import { processEmailForDisplay } from "../../utils/emailTextExtractor";
 
 // --- Icons --- (Using Heroicons Outline style for consistency)
 const MenuIcon = () => (
@@ -83,23 +83,28 @@ const Dashboard = ({ accessToken, onLogout, onAuthError }) => {
       try {
         setLoading(true);
         setLoadError(null);
+
+        // Load from storage first
         const storedEmails = getProcessedEmails();
         if (storedEmails.length > 0) {
           setEmails(storedEmails);
           console.log("Loaded emails from localStorage:", storedEmails.length);
         }
+
         try {
+          // Fetch fresh emails
           const fetchedEmails = await fetchEmails(accessToken);
           console.log("Fetched emails from API:", fetchedEmails.length);
+
           if (fetchedEmails && fetchedEmails.length > 0) {
-            const processedEmails = fetchedEmails.map((email) => ({
-              ...email,
-              category: classifyEmail(email),
-              company: extractCompanyName(email),
-              summary: summarizeEmail(email.body || email.snippet),
-            }));
+            // Process emails with clean text extraction
+            const processedEmails = processEmails(fetchedEmails);
+
+            // Save processed emails
             saveProcessedEmails(processedEmails);
             setEmails(processedEmails);
+
+            console.log("Processed emails:", processedEmails.length);
           }
         } catch (apiError) {
           console.error("Error fetching from API:", apiError);
@@ -124,18 +129,35 @@ const Dashboard = ({ accessToken, onLogout, onAuthError }) => {
     loadEmails();
   }, [accessToken, onAuthError]);
 
+  const processEmails = (fetchedEmails) => {
+    return fetchedEmails.map((email) => {
+      // Process email for clean display
+      const { cleanBody, summary, hasContent } = processEmailForDisplay(email);
+
+      // Create the processed email object
+      const processedEmail = {
+        ...email,
+        body: cleanBody, // Clean body text
+        summary: summary, // Smart summary
+        hasContent: hasContent,
+        category: classifyEmail({ ...email, body: cleanBody }), // Classify using clean text
+        company: extractCompanyName(email),
+      };
+
+      return processedEmail;
+    });
+  };
+
   const handleRefresh = async () => {
     setRefreshing(true);
     setLoadError(null);
+
     try {
       const fetchedEmails = await fetchEmails(accessToken);
       if (fetchedEmails && fetchedEmails.length > 0) {
-        const processedEmails = fetchedEmails.map((email) => ({
-          ...email,
-          category: classifyEmail(email),
-          company: extractCompanyName(email),
-          summary: summarizeEmail(email.body || email.snippet),
-        }));
+        // Process emails with clean text extraction
+        const processedEmails = processEmails(fetchedEmails);
+
         saveProcessedEmails(processedEmails);
         setEmails(processedEmails);
       }
