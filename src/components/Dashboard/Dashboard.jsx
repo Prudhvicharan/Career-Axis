@@ -131,14 +131,13 @@ const Dashboard = ({ accessToken, onLogout, onAuthError }) => {
 
   const processEmails = (fetchedEmails) => {
     return fetchedEmails.map((email) => {
-      // Process email for clean display
-      const { cleanBody, summary, hasContent } = processEmailForDisplay(email);
+      // Process email for clean display (no summary)
+      const { cleanBody, hasContent } = processEmailForDisplay(email);
 
       // Create the processed email object
       const processedEmail = {
         ...email,
         body: cleanBody, // Clean body text
-        summary: summary, // Smart summary
         hasContent: hasContent,
         category: classifyEmail({ ...email, body: cleanBody }), // Classify using clean text
         company: extractCompanyName(email),

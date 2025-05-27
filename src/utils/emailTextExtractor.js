@@ -1,3 +1,10 @@
+// src/utils/emailTextExtractor.js
+
+/**
+ * Enhanced email text extraction utility
+ * Handles HTML emails, removes styling, and extracts clean text
+ */
+
 // Main function to extract clean text from email
 export const extractCleanEmailText = (email) => {
   if (!email) return "";
@@ -114,6 +121,7 @@ const removeStylesAndScripts = (content) => {
 };
 
 // Clean special characters and HTML entities
+// Clean special characters and HTML entities
 const cleanSpecialCharacters = (content) => {
   let cleaned = content;
 
@@ -141,8 +149,8 @@ const cleanSpecialCharacters = (content) => {
   // Remove other HTML entities
   cleaned = cleaned.replace(/&#?\w+;/g, "");
 
-  // Remove excessive special characters
-  cleaned = cleaned.replace(/[^\w\s.,!?()[\]{}'":;@]/g, "");
+  // Remove excessive special characters (clean version)
+  cleaned = cleaned.replace(/[^\w\s.,!?()[\]{}'":;@-]/g, "");
 
   return cleaned;
 };
@@ -211,89 +219,12 @@ const truncateContent = (content, maxLength = 2000) => {
   return truncated + "...";
 };
 
-// Generate smart summary from clean text
-export const generateEmailSummary = (cleanText, maxSentences = 2) => {
-  if (!cleanText || cleanText.length < 50) {
-    return cleanText || "No summary available";
-  }
-
-  // Split into sentences
-  const sentences = cleanText
-    .split(/[.!?]+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 10);
-
-  if (sentences.length <= maxSentences) {
-    return cleanText;
-  }
-
-  // Job-related keywords for importance scoring
-  const importantKeywords = [
-    "application",
-    "interview",
-    "position",
-    "job",
-    "role",
-    "opportunity",
-    "thank",
-    "received",
-    "review",
-    "next steps",
-    "schedule",
-    "meet",
-    "assessment",
-    "test",
-    "offer",
-    "salary",
-    "start date",
-    "onboarding",
-    "rejection",
-    "unfortunately",
-    "selected",
-    "moving forward",
-  ];
-
-  // Score sentences by importance
-  const scoredSentences = sentences.map((sentence, index) => {
-    let score = 0;
-
-    // Prefer earlier sentences
-    score += Math.max(0, 5 - index);
-
-    // Count important keywords
-    const lowerSentence = sentence.toLowerCase();
-    importantKeywords.forEach((keyword) => {
-      if (lowerSentence.includes(keyword)) {
-        score += 2;
-      }
-    });
-
-    // Prefer medium-length sentences
-    if (sentence.length > 20 && sentence.length < 150) {
-      score += 1;
-    }
-
-    return { sentence, score, index };
-  });
-
-  // Get top sentences and maintain order
-  const topSentences = scoredSentences
-    .sort((a, b) => b.score - a.score)
-    .slice(0, maxSentences)
-    .sort((a, b) => a.index - b.index)
-    .map((item) => item.sentence);
-
-  return topSentences.join(". ") + ".";
-};
-
-// Main function to process email for display
+// Main function to process email for display (no summary)
 export const processEmailForDisplay = (email) => {
   const cleanText = extractCleanEmailText(email);
-  const summary = generateEmailSummary(cleanText);
 
   return {
     cleanBody: cleanText,
-    summary: summary,
     hasContent: cleanText.length > 0 && cleanText !== "No content available",
   };
 };

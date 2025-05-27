@@ -78,7 +78,7 @@ const Summary = ({ emails, setFilter }) => {
       </header>
 
       {/* Category Badges */}
-      <div className="p-6 flex-shrink-0">
+      {/* <div className="p-6 flex-shrink-0">
         {Object.keys(categoryCounts).some((key) => categoryCounts[key] > 0) ? (
           <div className="flex flex-wrap gap-2">
             {Object.entries(categoryCounts)
@@ -122,7 +122,7 @@ const Summary = ({ emails, setFilter }) => {
             <p className="mt-2">No job application emails found</p>
           </div>
         )}
-      </div>
+      </div> */}
 
       {/* Filter Section */}
       <div className="p-6 flex-shrink-0 border-t border-b border-[#E5E7EB] bg-white">
