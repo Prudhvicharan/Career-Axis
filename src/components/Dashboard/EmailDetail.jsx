@@ -263,38 +263,57 @@ const EmailDetail = ({ email }) => {
       {/* Email content - scrollable middle */}
       <div className="flex-1 overflow-y-auto p-6">
         {/* Email summary */}
-        {email.summary && (
+        {email.summary && email.hasContent && (
           <div className="bg-[#C2C5AA]/20 border border-[#A4AC86]/50 rounded-lg p-4 mb-6">
-            {" "}
-            {/* Palette summary box */}
             <h3 className="text-sm font-semibold text-[#582F0E] mb-2 flex items-center gap-1.5">
-              {" "}
-              {/* Dark brown text */}
               <InformationCircleIcon />
-              Summary
+              Email Summary
             </h3>
-            <p className="text-sm text-[#582F0E]/90">
-              {" "}
-              {/* Dark brown text */}
+            <p className="text-sm text-[#582F0E]/90 leading-relaxed">
               {email.summary}
             </p>
           </div>
         )}
 
         {/* Email body */}
-        {/* Use prose for potentially rich content, or keep simple div for plain text */}
-        <div className="text-sm leading-relaxed text-[#333D29] whitespace-pre-wrap prose prose-sm max-w-none prose-headings:text-[#414833] prose-a:text-[#7F4F24] hover:prose-a:text-[#582F0E]">
-          {" "}
-          {/* Darkest text for body, using prose */}
-          {/* Render email body (handle potential HTML safely if needed) */}
-          {/* For simplicity, assuming plain text or pre-formatted: */}
-          {email.body || email.snippet || "No content available."}
+        <div className="bg-white rounded-lg border border-[#A4AC86]/30 p-4">
+          <h3 className="text-sm font-semibold text-[#582F0E] mb-3 flex items-center gap-1.5">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-5.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.586.293h-3.414a1 1 0 01-.586-.293l-2.414-2.414A1 1 0 006.586 13H1"
+              />
+            </svg>
+            Email Content
+          </h3>
+
+          {email.hasContent ? (
+            <div className="text-sm leading-relaxed text-[#333D29] whitespace-pre-wrap">
+              {email.body}
+            </div>
+          ) : (
+            <div className="text-sm text-[#656D4A] italic">
+              No readable content available for this email.
+            </div>
+          )}
         </div>
-        {/* If email.body can contain HTML, consider using DOMPurify or dangerouslySetInnerHTML with caution:
-                 <div
-                    className="text-sm leading-relaxed text-[#333D29] prose prose-sm max-w-none prose-headings:text-[#414833] prose-a:text-[#7F4F24] hover:prose-a:text-[#582F0E]"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body || email.snippet || "No content available.") }}
-                /> */}
+
+        {/* Show snippet as fallback if no clean content */}
+        {!email.hasContent && email.snippet && (
+          <div className="mt-4 bg-[#F8F7F4] rounded-lg border border-[#A4AC86]/30 p-4">
+            <h3 className="text-sm font-semibold text-[#582F0E] mb-2">
+              Email Preview (Gmail Snippet)
+            </h3>
+            <p className="text-sm text-[#656D4A] italic">{email.snippet}</p>
+          </div>
+        )}
       </div>
       {/* Email actions - sticky bottom */}
       <div className="p-6 border-t border-[#A4AC86]/60 flex-shrink-0 sticky bottom-0 bg-[#F8F7F4]/95 backdrop-blur-sm">

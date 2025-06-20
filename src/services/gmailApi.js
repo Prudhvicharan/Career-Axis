@@ -2,7 +2,7 @@
 import axios from "axios";
 import { extractCleanEmailText } from "../utils/emailTextExtractor";
 
-export const fetchEmails = async (accessToken, maxResults = 50) => {
+export const fetchEmails = async (accessToken, maxResults = 100) => {
   console.log("Using access token:", accessToken ? "Token exists" : "No token");
 
   if (!accessToken) {

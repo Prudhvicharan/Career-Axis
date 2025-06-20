@@ -121,7 +121,6 @@ const removeStylesAndScripts = (content) => {
 };
 
 // Clean special characters and HTML entities
-// Clean special characters and HTML entities
 const cleanSpecialCharacters = (content) => {
   let cleaned = content;
 
@@ -149,8 +148,8 @@ const cleanSpecialCharacters = (content) => {
   // Remove other HTML entities
   cleaned = cleaned.replace(/&#?\w+;/g, "");
 
-  // Remove excessive special characters (clean version)
-  cleaned = cleaned.replace(/[^\w\s.,!?()[\]{}'":;@-]/g, "");
+  // Remove excessive special characters
+  cleaned = cleaned.replace(/[^\w\s\.\,\!\?\-\(\)\[\]\{\}'":;@]/g, "");
 
   return cleaned;
 };
