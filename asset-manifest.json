@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/Career-Axis/static/css/main.7acd939b.css",
+    "main.js": "/Career-Axis/static/js/main.cfb0fe48.js",
+    "static/js/488.227d6e7b.chunk.js": "/Career-Axis/static/js/488.227d6e7b.chunk.js",
+    "index.html": "/Career-Axis/index.html",
+    "main.7acd939b.css.map": "/Career-Axis/static/css/main.7acd939b.css.map",
+    "main.cfb0fe48.js.map": "/Career-Axis/static/js/main.cfb0fe48.js.map",
+    "488.227d6e7b.chunk.js.map": "/Career-Axis/static/js/488.227d6e7b.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.7acd939b.css",
+    "static/js/main.cfb0fe48.js"
+  ]
+}
