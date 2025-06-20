@@ -5,8 +5,7 @@ import Login from "./components/Auth/Login";
 import Dashboard from "./components/Dashboard/Dashboard";
 
 // Your Google Client ID from Google Cloud Console
-const CLIENT_ID =
-  "332215621326-5ej0dluv1gm680lvt7perc1daubb6slj.apps.googleusercontent.com";
+const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
 function App() {
   const [accessToken, setAccessToken] = useState(null);
